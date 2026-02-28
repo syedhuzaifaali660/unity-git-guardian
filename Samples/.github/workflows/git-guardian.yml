@@ -1,0 +1,14 @@
+name: Git Guardian
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: syedhuzaifaali660/unity-git-guardian/.github/actions/git-guardian@main
+        with:
+          project_path: .

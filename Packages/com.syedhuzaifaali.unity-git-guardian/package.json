@@ -1,0 +1,21 @@
+{
+  "name": "com.syedhuzaifaali.unity-git-guardian",
+  "version": "0.2.2",
+  "displayName": "Unity Git Guardian",
+  "description": "Repo-integrity checks for Unity projects: meta files, GUIDs, VCS hints + GitHub Action installer.",
+  "unity": "2021.3",
+  "keywords": [
+    "unity",
+    "git",
+    "plastic",
+    "meta",
+    "guid",
+    "ci",
+    "github-actions",
+    "editor"
+  ],
+  "author": {
+    "name": "Syed Huzaifa Ali",
+    "url": "https://github.com/syedhuzaifaali660"
+  }
+}

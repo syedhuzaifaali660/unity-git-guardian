@@ -1,0 +1,22 @@
+name: "Unity Git Guardian"
+description: "Checks Unity repos for missing .meta files, orphan metas, and duplicate GUIDs."
+
+inputs:
+  project_path:
+    description: "Path to the Unity project root (where Assets/ exists)"
+    required: false
+    default: "."
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Run Git Guardian
+      shell: bash
+      working-directory: ${{ inputs.project_path }}
+      run: python "${{ github.action_path }}/guardian_check.py"
