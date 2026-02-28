@@ -19,7 +19,7 @@ namespace GitGuardian
 
         public static string ActionRef
         {
-            get => EditorPrefs.GetString(PrefRef, "main");
+            get => EditorPrefs.GetString(PrefRef, "v0.0.1");
             set => EditorPrefs.SetString(PrefRef, value);
         }
 

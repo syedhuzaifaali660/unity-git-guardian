@@ -89,11 +89,12 @@ namespace GitGuardian
         private void DrawCISection()
         {
             EditorGUILayout.LabelField("GitHub Actions (optional)", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(
-                "To run these checks on every push/PR, add a workflow file to your repository. " +
-                "Click 'Install GitHub Workflow' to generate .github/workflows/git-guardian.yml, then commit it.",
-                MessageType.Info
-            );
+EditorGUILayout.HelpBox(
+    "To run these checks on every push/PR, add a workflow file to your repository. " +
+    "Tip: use a release tag (example: v0.0.1) for stable installs. " +
+    "When a newer version is released, update the Action Ref to the latest tag.",
+    MessageType.Info
+);
 
             WorkflowInstaller.RepoSlug = EditorGUILayout.TextField("Action Repo (owner/name)", WorkflowInstaller.RepoSlug);
             WorkflowInstaller.ActionRef = EditorGUILayout.TextField("Action Ref (tag/branch)", WorkflowInstaller.ActionRef);
