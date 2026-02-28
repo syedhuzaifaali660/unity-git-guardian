@@ -11,29 +11,18 @@ Unity Git Guardian helps teams prevent **broken Unity projects after pulling/clo
 
 > Why this matters: Unity uses GUIDs from `.meta` files to keep references stable. If metas are missing or GUIDs collide, scenes/prefabs can lose references on other machines.
 
----
-
-## Features
-
-✅ **Unity Editor Window**  
-`Tools → Git Guardian → Open`
-
-✅ **GitHub Actions support** (CI gate on pull requests / pushes)  
-A workflow file is required in the user’s repo — Git Guardian can generate it.
-
-✅ **Works with Git or Plastic**  
-- Git: `.gitignore`
-- Plastic: `ignore.conf`
-
----
-
-## Install (Unity Package Manager / UPM)
-
-In your Unity project, open `Packages/manifest.json` and add:
+## Install (UPM)
 
 ```json
 {
   "dependencies": {
-    "com.syedhuzaifaali.unity-git-guardian": "https://github.com/syedhuzaifaali660/unity-git-guardian.git?path=Packages/com.syedhuzaifaali.unity-git-guardian#v0.2.0"
+    "com.syedhuzaifaali.unity-git-guardian": "https://github.com/syedhuzaifaali660/unity-git-guardian.git?path=Packages/com.syedhuzaifaali.unity-git-guardian#v0.2.2"
   }
 }
+```
+
+## Use
+In Unity: **Tools → Git Guardian → Open**
+
+## CI
+In Unity window, click **Install GitHub Workflow**, then commit `.github/workflows/git-guardian.yml`.
