@@ -62,7 +62,15 @@ namespace GitGuardian
                     var prev = GUI.backgroundColor;
                     GUI.backgroundColor = color;
 
-                    EditorGUILayout.LabelField($"{issue.Severity}: {issue.Title}", EditorStyles.boldLabel);
+                    if (issue.GoTo != null)
+                    {
+                        if (GUILayout.Button($"{issue.Severity}: {issue.Title}", EditorStyles.boldLabel))
+                            issue.GoTo.Invoke();
+                    }
+                    else
+                    {
+                        EditorGUILayout.LabelField($"{issue.Severity}: {issue.Title}", EditorStyles.boldLabel);
+                    }
 
                     GUI.backgroundColor = prev;
 
@@ -73,6 +81,9 @@ namespace GitGuardian
 
                     using (new EditorGUILayout.HorizontalScope())
                     {
+                        if (issue.GoTo != null && GUILayout.Button("Go To", GUILayout.Width(80)))
+                            issue.GoTo.Invoke();
+
                         GUILayout.FlexibleSpace();
 
                         if (issue.Fix != null && GUILayout.Button("Fix"))

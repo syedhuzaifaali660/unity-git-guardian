@@ -12,15 +12,17 @@ namespace GitGuardian
         public string Title;
         public string Details;
         public string RelatedPath; // optional
+        public Func<bool> GoTo;     // optional navigation action
         public Func<bool> Fix;     // optional fix action
 
-        public GuardianIssue(string id, GuardianSeverity severity, string title, string details, string relatedPath = null, Func<bool> fix = null)
+        public GuardianIssue(string id, GuardianSeverity severity, string title, string details, string relatedPath = null, Func<bool> goTo = null, Func<bool> fix = null)
         {
             Id = id;
             Severity = severity;
             Title = title;
             Details = details;
             RelatedPath = relatedPath;
+            GoTo = goTo;
             Fix = fix;
         }
     }

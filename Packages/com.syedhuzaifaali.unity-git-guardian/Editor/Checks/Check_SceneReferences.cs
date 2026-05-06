@@ -15,6 +15,7 @@ namespace GitGuardian.Checks
         public List<GitGuardian.GuardianIssue> Run()
         {
             var issues = new List<GitGuardian.GuardianIssue>();
+            var scannedScenePaths = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
 
             // Scan currently loaded scenes first so the open demo scene is covered even
             // when it is unsaved or not part of Build Settings.
@@ -26,6 +27,9 @@ namespace GitGuardian.Checks
                 var sceneLabel = string.IsNullOrEmpty(loadedScene.path)
                     ? $"Open Scene {i}"
                     : loadedScene.path;
+
+                if (!string.IsNullOrEmpty(loadedScene.path))
+                    scannedScenePaths.Add(loadedScene.path);
 
                 ScanScene(loadedScene, sceneLabel, issues, false);
             }
@@ -39,7 +43,7 @@ namespace GitGuardian.Checks
                 {
                     if (bs == null) continue;
                     if (string.IsNullOrEmpty(bs.path)) continue;
-                    if (!scenesToScan.Contains(bs.path))
+                    if (!scannedScenePaths.Contains(bs.path) && !scenesToScan.Contains(bs.path))
                         scenesToScan.Add(bs.path);
                 }
             }
@@ -50,7 +54,7 @@ namespace GitGuardian.Checks
             {
                 var sceneFileNormalized = sceneFile.Replace("\\", "/");
                 var relative = "Assets" + sceneFileNormalized.Substring(assetsDir.Length);
-                if (!scenesToScan.Contains(relative))
+                if (!scannedScenePaths.Contains(relative) && !scenesToScan.Contains(relative))
                     scenesToScan.Add(relative);
             }
 
@@ -110,7 +114,8 @@ namespace GitGuardian.Checks
                                 GitGuardian.GuardianSeverity.Error,
                                 "Missing script on GameObject",
                                 msg,
-                                relatedPath: sceneLabel
+                                relatedPath: sceneLabel,
+                                goTo: CreateGoToAction(scene, sceneLabel, GetGameObjectPath(go), null, null)
                             ));
                             continue;
                         }
@@ -136,7 +141,8 @@ namespace GitGuardian.Checks
                                                 GitGuardian.GuardianSeverity.Warning,
                                                 "Null serialized reference in scene",
                                                 msg,
-                                                relatedPath: sceneLabel
+                                                relatedPath: sceneLabel,
+                                                goTo: CreateGoToAction(scene, sceneLabel, GetGameObjectPath(go), comp.GetType().FullName, sp.name)
                                             ));
                                         }
                                     }
@@ -150,6 +156,123 @@ namespace GitGuardian.Checks
                     }
                 }
             }
+        }
+
+        private static System.Func<bool> CreateGoToAction(Scene scene, string sceneLabel, string gameObjectPath, string componentTypeName, string fieldName)
+        {
+            return () =>
+            {
+                var targetScene = scene;
+
+                if (!targetScene.IsValid() || !targetScene.isLoaded)
+                {
+                    if (!string.IsNullOrEmpty(targetScene.path))
+                    {
+                        targetScene = EditorSceneManager.GetSceneByPath(targetScene.path);
+                        if (!targetScene.isLoaded)
+                        {
+                            try
+                            {
+                                targetScene = EditorSceneManager.OpenScene(targetScene.path, OpenSceneMode.Additive);
+                            }
+                            catch (System.Exception e)
+                            {
+                                Debug.LogWarning($"[GitGuardian] Could not open scene {sceneLabel}: {e.Message}");
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                if (!targetScene.IsValid() || !targetScene.isLoaded)
+                    targetScene = FindLoadedSceneByLabel(sceneLabel);
+
+                if (!targetScene.IsValid() || !targetScene.isLoaded)
+                {
+                    Debug.LogWarning($"[GitGuardian] Could not locate scene {sceneLabel} for navigation.");
+                    return false;
+                }
+
+                var go = FindGameObjectByPath(targetScene, gameObjectPath);
+                if (go == null)
+                {
+                    Debug.LogWarning($"[GitGuardian] Could not locate GameObject '{gameObjectPath}' in scene {sceneLabel}.");
+                    return false;
+                }
+
+                GameObject selected = go;
+                if (!string.IsNullOrEmpty(componentTypeName))
+                {
+                    var comps = go.GetComponents<Component>();
+                    foreach (var comp in comps)
+                    {
+                        if (comp == null) continue;
+                        var type = comp.GetType();
+                        if (type.FullName == componentTypeName || type.Name == componentTypeName)
+                        {
+                            selected = go;
+                            Selection.activeObject = comp;
+                            EditorGUIUtility.PingObject(comp);
+                            EditorGUIUtility.PingObject(go);
+                            return true;
+                        }
+                    }
+                }
+
+                Selection.activeGameObject = selected;
+                EditorGUIUtility.PingObject(selected);
+                return true;
+            };
+        }
+
+        private static Scene FindLoadedSceneByLabel(string sceneLabel)
+        {
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                var candidate = SceneManager.GetSceneAt(i);
+                if (!candidate.IsValid() || !candidate.isLoaded) continue;
+                var candidateLabel = string.IsNullOrEmpty(candidate.path) ? $"Open Scene {i}" : candidate.path;
+                if (candidateLabel == sceneLabel)
+                    return candidate;
+            }
+
+            return default;
+        }
+
+        private static GameObject FindGameObjectByPath(Scene scene, string gameObjectPath)
+        {
+            if (!scene.IsValid() || !scene.isLoaded || string.IsNullOrEmpty(gameObjectPath)) return null;
+
+            var segments = gameObjectPath.Split('/');
+            var roots = scene.GetRootGameObjects();
+            foreach (var root in roots)
+            {
+                if (root.name != segments[0]) continue;
+
+                var current = root;
+                for (var i = 1; i < segments.Length; i++)
+                {
+                    current = FindChild(current.transform, segments[i]);
+                    if (current == null) break;
+                }
+
+                if (current != null)
+                    return current;
+            }
+
+            return null;
+        }
+
+        private static GameObject FindChild(Transform parent, string childName)
+        {
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var child = parent.GetChild(i);
+                if (child.name == childName)
+                    return child.gameObject;
+            }
+
+            return null;
         }
 
         private static string GetGameObjectPath(GameObject go)

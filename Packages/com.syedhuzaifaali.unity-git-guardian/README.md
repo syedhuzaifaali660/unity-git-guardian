@@ -15,7 +15,7 @@ If you are installing from GitHub, make sure the URL points at the current relea
 Example:
 
 ```json
-"com.syedhuzaifaali.unity-git-guardian": "https://github.com/syedhuzaifaali660/unity-git-guardian.git?path=Packages/com.syedhuzaifaali.unity-git-guardian#v0.0.2"
+"com.syedhuzaifaali.unity-git-guardian": "https://github.com/syedhuzaifaali660/unity-git-guardian.git?path=Packages/com.syedhuzaifaali.unity-git-guardian#v0.0.3"
 ```
 
 ## What it checks
