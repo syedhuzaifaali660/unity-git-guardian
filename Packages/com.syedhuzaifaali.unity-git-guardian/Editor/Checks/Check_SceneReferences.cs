@@ -16,6 +16,20 @@ namespace GitGuardian.Checks
         {
             var issues = new List<GitGuardian.GuardianIssue>();
 
+            // Scan currently loaded scenes first so the open demo scene is covered even
+            // when it is unsaved or not part of Build Settings.
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                var loadedScene = SceneManager.GetSceneAt(i);
+                if (!loadedScene.IsValid() || !loadedScene.isLoaded) continue;
+
+                var sceneLabel = string.IsNullOrEmpty(loadedScene.path)
+                    ? $"Open Scene {i}"
+                    : loadedScene.path;
+
+                ScanScene(loadedScene, sceneLabel, issues, false);
+            }
+
             // Collect scenes: prefer Build Settings scenes first (likely project scenes),
             // then add any remaining .unity files found under Assets.
             var scenesToScan = new List<string>();
@@ -44,7 +58,6 @@ namespace GitGuardian.Checks
             {
                 try
                 {
-                    Debug.Log($"[GitGuardian] Scanning scene: {relative}");
                     var scene = EditorSceneManager.GetSceneByPath(relative);
                     var openedByUs = false;
                     if (!scene.isLoaded)
@@ -53,68 +66,7 @@ namespace GitGuardian.Checks
                         openedByUs = true;
                     }
 
-                    var roots = scene.GetRootGameObjects();
-                    Debug.Log($"[GitGuardian] Scene {relative} loaded; root objects: {roots.Length}");
-
-                    foreach (var root in roots)
-                    {
-                        var transforms = root.GetComponentsInChildren<Transform>(true);
-                        foreach (var t in transforms)
-                        {
-                            var go = t.gameObject;
-                            var components = go.GetComponents<Component>();
-                            for (int i = 0; i < components.Length; i++)
-                            {
-                                var comp = components[i];
-                                if (comp == null)
-                                {
-                                    var msg = $"[GitGuardian] Missing script in scene {relative} on GameObject {GetGameObjectPath(go)}";
-                                    Debug.LogError(msg);
-                                    issues.Add(new GitGuardian.GuardianIssue(
-                                        "GG-SCN-001",
-                                        GitGuardian.GuardianSeverity.Error,
-                                        "Missing script on GameObject",
-                                        msg,
-                                        relatedPath: relative
-                                    ));
-                                    continue;
-                                }
-
-                                try
-                                {
-                                    var so = new SerializedObject(comp);
-                                    so.Update();
-                                    var sp = so.GetIterator();
-                                    if (sp.NextVisible(true))
-                                    {
-                                        do
-                                        {
-                                            if (sp.propertyType == SerializedPropertyType.ObjectReference)
-                                            {
-                                                if (sp.name == "m_Script") continue;
-                                                if (sp.objectReferenceValue == null)
-                                                {
-                                                    var msg = $"[GitGuardian] Null reference in scene {relative}\nGameObject: {GetGameObjectPath(go)}\nComponent: {comp.GetType().Name}\nField: {sp.name}";
-                                                    Debug.LogWarning(msg);
-                                                    issues.Add(new GitGuardian.GuardianIssue(
-                                                        "GG-SCN-002",
-                                                        GitGuardian.GuardianSeverity.Warning,
-                                                        "Null serialized reference in scene",
-                                                        msg,
-                                                        relatedPath: relative
-                                                    ));
-                                                }
-                                            }
-                                        } while (sp.NextVisible(false));
-                                    }
-                                }
-                                catch (System.Exception e)
-                                {
-                                    Debug.LogWarning($"[GitGuardian] Failed inspecting component {comp?.GetType().Name} on {GetGameObjectPath(go)}: {e.Message}");
-                                }
-                            }
-                        }
-                    }
+                    ScanScene(scene, relative, issues, true);
 
                     if (openedByUs)
                         EditorSceneManager.CloseScene(scene, true);
@@ -126,6 +78,78 @@ namespace GitGuardian.Checks
             }
 
             return issues;
+        }
+
+        private static void ScanScene(Scene scene, string sceneLabel, List<GitGuardian.GuardianIssue> issues, bool logScan)
+        {
+            if (!scene.IsValid() || !scene.isLoaded) return;
+
+            if (logScan)
+                Debug.Log($"[GitGuardian] Scanning scene: {sceneLabel}");
+
+            var roots = scene.GetRootGameObjects();
+            if (logScan)
+                Debug.Log($"[GitGuardian] Scene {sceneLabel} loaded; root objects: {roots.Length}");
+
+            foreach (var root in roots)
+            {
+                var transforms = root.GetComponentsInChildren<Transform>(true);
+                foreach (var t in transforms)
+                {
+                    var go = t.gameObject;
+                    var components = go.GetComponents<Component>();
+                    for (int i = 0; i < components.Length; i++)
+                    {
+                        var comp = components[i];
+                        if (comp == null)
+                        {
+                            var msg = $"[GitGuardian] Missing script in scene {sceneLabel} on GameObject {GetGameObjectPath(go)}";
+                            Debug.LogError(msg);
+                            issues.Add(new GitGuardian.GuardianIssue(
+                                "GG-SCN-001",
+                                GitGuardian.GuardianSeverity.Error,
+                                "Missing script on GameObject",
+                                msg,
+                                relatedPath: sceneLabel
+                            ));
+                            continue;
+                        }
+
+                        try
+                        {
+                            var so = new SerializedObject(comp);
+                            so.Update();
+                            var sp = so.GetIterator();
+                            if (sp.NextVisible(true))
+                            {
+                                do
+                                {
+                                    if (sp.propertyType == SerializedPropertyType.ObjectReference)
+                                    {
+                                        if (sp.name == "m_Script") continue;
+                                        if (sp.objectReferenceValue == null)
+                                        {
+                                            var msg = $"[GitGuardian] Null reference in scene {sceneLabel}\nGameObject: {GetGameObjectPath(go)}\nComponent: {comp.GetType().Name}\nField: {sp.name}";
+                                            Debug.LogWarning(msg);
+                                            issues.Add(new GitGuardian.GuardianIssue(
+                                                "GG-SCN-002",
+                                                GitGuardian.GuardianSeverity.Warning,
+                                                "Null serialized reference in scene",
+                                                msg,
+                                                relatedPath: sceneLabel
+                                            ));
+                                        }
+                                    }
+                                } while (sp.NextVisible(false));
+                            }
+                        }
+                        catch (System.Exception e)
+                        {
+                            Debug.LogWarning($"[GitGuardian] Failed inspecting component {comp?.GetType().Name} on {GetGameObjectPath(go)}: {e.Message}");
+                        }
+                    }
+                }
+            }
         }
 
         private static string GetGameObjectPath(GameObject go)
