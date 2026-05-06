@@ -13,6 +13,7 @@ namespace GitGuardian
         {
             new Check_ProjectSettings(),
             new Check_MetaPairs(),
+            new Check_SceneReferences(),
             new Check_DuplicateGuids(),
             new Check_GitFiles()
         };

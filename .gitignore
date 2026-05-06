@@ -1,0 +1,37 @@
+# =========================
+# OS / platform junk
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+._*
+Thumbs.db
+Desktop.ini
+
+# =========================
+# Editor / IDE settings
+# =========================
+.vscode/
+.idea/
+*.suo
+*.user
+*.userprefs
+*.csproj
+*.sln
+*.tmp
+
+# =========================
+# Unity generated folders (if someone opens/tests as a Unity project)
+# =========================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+Build/
+Builds/
+
+# Unity Package Manager lockfile (only relevant in Unity projects)
+Packages/packages-lock.json
